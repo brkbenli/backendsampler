@@ -21,7 +21,7 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-    origin: ["https://6660e0f40d96f506b57aff63--comfy-selkie-0ff8de.netlify.app"],
+    origin: ["http://localhost:3000"],
     methods: ["GET", "POST"],
     credentials: true
 }));
