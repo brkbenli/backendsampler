@@ -4,6 +4,7 @@ const cors = require('cors');
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const session = require("express-session");
+const MySQLStore = require('express-mysql-session')(session);
 const bcrypt = require('bcryptjs');
 const saltRounds = 10;
 const fs = require('fs');
@@ -16,7 +17,6 @@ const isAuthenticated = (req, res, next) => {
     }
 };
 
-
 const app = express();
 
 app.use(express.json());
@@ -25,18 +25,8 @@ app.use(cors({
     methods: ["GET", "POST"],
     credentials: true
 }));
-app.use(cookieParser())
-app.use(bodyParser.urlencoded({extended: true}));
-
-app.use(session({
-    key: "userID",
-    secret: "subscribe",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-        expires: null
-    }
-}));
+app.use(cookieParser());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 const db = mysql.createConnection({
     host: "us-cluster-east-01.k8s.cleardb.net",
@@ -53,12 +43,30 @@ db.connect((err) => {
     console.log('Connected to MySQL database');
 });
 
+const sessionStore = new MySQLStore({
+    host: "us-cluster-east-01.k8s.cleardb.net",
+    user: "b901435c0aa0ef",
+    password: "99d3f5ab",
+    database: "heroku_b0b2bd13ead1dab",
+});
+
+app.use(session({
+    key: "userID",
+    secret: "subscribe",
+    resave: false,
+    saveUninitialized: false,
+    store: sessionStore,
+    cookie: {
+        maxAge: 1000 * 60 * 60 * 24 // 1 day
+    }
+}));
+
 app.post('/signup', (req, res) => {
     const sql = "INSERT INTO login (name, email, password) VALUES (?, ?, ?)";
     
-    const username = req.body.name
-    const email = req.body.email
-    const password = req.body.password
+    const username = req.body.name;
+    const email = req.body.email;
+    const password = req.body.password;
     
     bcrypt.hash(password, saltRounds, (err, hash) => {
         if (err) {
@@ -66,19 +74,19 @@ app.post('/signup', (req, res) => {
         }
 
         db.query(sql, [username, email, hash], (err, data) => {
-            if(err) {
+            if (err) {
                 return res.json("Error");
             }
             return res.json(data);
-        })
-    })
+        });
+    });
 });
 
 app.get("/login", (req, res) => {
     if (req.session.user) {
-        res.send({loggedIn: true, user: req.session.user});
+        res.send({ loggedIn: true, user: req.session.user });
     } else {
-        res.send({loggedIn: false });
+        res.send({ loggedIn: false });
     }
 });
 
@@ -86,40 +94,37 @@ app.post('/login', (req, res) => {
     const sql = "SELECT * FROM login WHERE email = ?";
     
     db.query(sql, [req.body.email], (err, data) => {
-        if(err) {
+        if (err) {
             return res.json("Error");
         }
-        if(data.length > 0) {
+        if (data.length > 0) {
             bcrypt.compare(req.body.password, data[0].password, (error, response) => {
                 if (response) {
                     req.session.user = data;
-                    console.log("yurrr")
+                    console.log("yurrr");
                     console.log(req.session.user);
                     return res.json("Success");
                 } else {
                     return res.json("Fail");
                 }
             });
-            
-        }
-        else {
-            res.send({message: "User doesnt exist"});
+        } else {
+            res.send({ message: "User doesn't exist" });
         }
     });
 });
 
 app.post("/logout", (req, res) => {
     req.session.destroy(err => {
-      if (err) {
-        return res.json({ message: "Error logging out" });
-      }
-      res.clearCookie("userID");
-      res.send({ loggedIn: false });
+        if (err) {
+            return res.json({ message: "Error logging out" });
+        }
+        res.clearCookie("userID");
+        res.send({ loggedIn: false });
     });
-  });
+});
 
-
-  app.post('/favorite', isAuthenticated, (req, res) => {
+app.post('/favorite', isAuthenticated, (req, res) => {
     const userId = req.session.user[0].id;
     const { songId } = req.body;
     const checkSql = "SELECT * FROM user_favorites WHERE user_id = ? AND song_id = ?";
