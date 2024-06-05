@@ -21,7 +21,7 @@ const app = express();
 
 app.use(express.json());
 app.use(cors({
-    origin: ["http://localhost:3000"],
+    origin: ["https://samplerrfrontend-cdb9bd942bce.herokuapp.com"],
     methods: ["GET", "POST"],
     credentials: true
 }));
