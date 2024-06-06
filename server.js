@@ -30,10 +30,10 @@ app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const db = mysql.createConnection({
-    host: "us-cluster-east-01.k8s.cleardb.net",
-    user: "b901435c0aa0ef",
-    password: "99d3f5ab",
-    database: "heroku_b0b2bd13ead1dab"
+    host: "bxy3om970nymc6b6sobi-mysql.services.clever-cloud.com",
+    user: "ugcbxtof3irbhsyq",
+    password: "gZeLyBINZOuneq2Uu00G",
+    database: "bxy3om970nymc6b6sobi"
 });
 
 db.connect((err) => {
